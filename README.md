@@ -182,7 +182,6 @@ ffmpeg -i input.mp4 -vf vidstabdetect=shakiness=5:show=1 dummy_output.mp4
   <br><i><b>linear</b></i>: Linear only horizontal.
   <br><i><b>bilinear</b></i>: Linear in both directions (default).
   <br><i><b>bicubic</b></i>: Cubic in both directions (slow speed).
-  <dt><b>interpol</b></dt>
   <dt><b>threadcount</b></dt>
   <dd>Specify the number of threads to use for transforming a frame. Range is from 0. default value is 1/2 available threads.</dd>
   <dd> <b>NOTE</b> This value should be tuned for the interpolation algorithm and encoding codec. 
