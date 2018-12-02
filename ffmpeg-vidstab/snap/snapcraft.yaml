@@ -41,6 +41,7 @@ parts:
       - --enable-gpl
       - --enable-libvidstab
     build-packages:
+      - gcc
       - pkg-config
       - yasm
       - libdrm-dev

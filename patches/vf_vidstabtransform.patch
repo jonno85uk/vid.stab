@@ -1,0 +1,23 @@
+--- /mnt/WDBLU2TB/Code/c/vid.stab/ffmpeg-4.1/libavfilter/vf_vidstabtransform.c
++++ /mnt/WDBLU2TB/Code/c/vid.stab/vf_vidstabtransform.c
+@@ -81,8 +81,10 @@
+                    AV_OPT_TYPE_DOUBLE, {.dbl = 0},     -100, 100,  FLAGS},
+     {"optzoom",   "set optimal zoom (0: nothing, 1: optimal static zoom, 2: optimal dynamic zoom)", OFFSETC(optZoom),
+                    AV_OPT_TYPE_INT,    {.i64 = 1},        0, 2,    FLAGS},
+-    {"zoomspeed", "for adative zoom: percent to zoom maximally each frame",         OFFSETC(zoomSpeed),
++    {"zoomspeed", "for adaptive zoom: percent to zoom maximally each frame",         OFFSETC(zoomSpeed),
+                    AV_OPT_TYPE_DOUBLE, {.dbl = 0.25},     0, 5,    FLAGS},
++    {"threadcount", "amount of threads for transforms",         OFFSETC(threadCount),
++                   AV_OPT_TYPE_INT,     {.i64 = 1},     0, 100,    FLAGS},
+ 
+     {"interpol",  "set type of interpolation", OFFSETC(interpolType),
+                    AV_OPT_TYPE_INT,    {.i64 = 2},        0, 3,    FLAGS, "interpol"},
+@@ -193,6 +195,7 @@
+     vsTransformGetConfig(&tc->conf, td);
+     av_log(ctx, AV_LOG_INFO, "Video transformation/stabilization settings (pass 2/2):\n");
+     av_log(ctx, AV_LOG_INFO, "    input     = %s\n", tc->input);
++    av_log(ctx, AV_LOG_INFO, "  threadcount = %d\n", tc->conf.threadCount);
+     av_log(ctx, AV_LOG_INFO, "    smoothing = %d\n", tc->conf.smoothing);
+     av_log(ctx, AV_LOG_INFO, "    optalgo   = %s\n",
+            tc->conf.camPathAlgo == VSOptimalL1 ? "opt" :
+

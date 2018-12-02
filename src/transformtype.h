@@ -24,6 +24,7 @@
 #define __TRANSFORMTYPE_H
 
 #include <stdio.h>
+#include <stdint.h>
 #include "vsvector.h"
 
 /* structure to hold information about frame transformations
@@ -66,6 +67,9 @@ typedef struct _localmotion {
 
 typedef VSVector LocalMotions;
 
+
+typedef int32_t fp8;
+typedef int32_t fp16; // also ncot definition of interpolFun in transform.h
 #endif
 
 /*
