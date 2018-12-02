@@ -188,6 +188,7 @@ ffmpeg -i input.mp4 -vf vidstabdetect=shakiness=5:show=1 dummy_output.mp4
   <dd> <b>NOTE</b> This value should be tuned for the interpolation algorithm and encoding codec. 
   If too many threads are used it can hinder performance.</dd>
   <dd> <b>NOTE</b> As of 02/11/18 ffmpeg requires patching in order for this option to be used. See the included patch.</dd>
+  <dt><b>tripod</b></dt>
   <dd>Enables virtual tripod mode if set to 1, which is equivalent to <b>relative=0:smoothing=0</b>. Default value is 0.
   <br>NOTE: If this mode has been used in first pass then only it should be used in second pass.</dd>
   <dt><b>debug</b></dt>
