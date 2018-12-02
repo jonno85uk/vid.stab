@@ -178,7 +178,7 @@ ffmpeg -i input.mp4 -vf vidstabdetect=shakiness=5:show=1 dummy_output.mp4
   <dd>Set percent to zoom maximally each frame (enabled when optzoom is set to 2). Range is from 0 to 5, default value is 0.25.</dd>
   <dt><b>interpol</b></dt>
   <dd>Specify type of interpolation. Available values are:
-  <br><i><b>no</b></i>: No interpolation.
+  <br><i><b>no</b></i>: No interpolation (Nearest-Neighbour).
   <br><i><b>linear</b></i>: Linear only horizontal.
   <br><i><b>bilinear</b></i>: Linear in both directions (default).
   <br><i><b>bicubic</b></i>: Cubic in both directions (slow speed).
