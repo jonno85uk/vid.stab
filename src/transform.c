@@ -65,6 +65,7 @@ VSTransformConfig vsTransformGetDefaultConfig(const char* modName){
   conf.storeTransforms    = 0;
   conf.smoothZoom         = 0;
   conf.camPathAlgo        = VSOptimalL1;
+  conf.threadCount        = 0;
   return conf;
 }
 

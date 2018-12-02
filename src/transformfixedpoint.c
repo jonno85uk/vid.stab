@@ -24,6 +24,10 @@
  *
  *
  */
+#ifdef USE_OMP
+#include <omp.h>
+#endif
+
 #include "transformfixedpoint.h"
 #include "transform.h"
 #include "transformtype_operations.h"
@@ -40,6 +44,7 @@
 #define fp16ToI(v) ((v)>>16)
 #define fp8ToF(v)  ((v)/((double)(1<<8)))
 #define fp16ToF(v) ((v)/((double)(1<<16)))
+//#define fp16ToF(v) (((v & 0x8000)<<16) | (((v&0x7c00)+0x1c000)<<13) | ((v&0x03FF)<<13))
 
 // #define fp8ToIRound(v) ( (((v)>>7) & 0x1) == 0 ? ((v)>>8) : ((v)>>8)+1 )
 #define fp8_0_5 (1<<7)
@@ -50,35 +55,35 @@
 
 /** interpolateBiLinBorder: bi-linear interpolation function that also works at the border.
     This is used by many other interpolation methods at and outsize the border, see interpolate */
-inline void interpolateBiLinBorder(uint8_t * const rv, const int32_t x, const int32_t y,
+inline void interpolateBiLinBorder(uint8_t * const rv, const fp16 x, const fp16 y,
                                  const uint8_t * const img, const int linesize,
                                  const int width, const int height, const uint8_t def)
 {
-  int32_t ix_f = fp16ToI(x);
-  int32_t iy_f = fp16ToI(y);
-  int32_t ix_c = ix_f + 1;
-  int32_t iy_c = iy_f + 1;
-  if (ix_f < 0 || ix_c >= width || iy_f < 0 || iy_c >= height) {
+  int32_t ix = fp16ToI(x);
+  int32_t iy = fp16ToI(y);
+  int32_t ixx = ix + 1;
+  int32_t iyy = iy + 1;
+  if (ix < 0 || ixx >= width || iy < 0 || iyy >= height) {
     int32_t w  = 10; // number of pixels to blur out the border pixel outwards
-    int32_t xl = - w - ix_f;
-    int32_t yl = - w - iy_f;
-    int32_t xh = ix_c - w - width;
-    int32_t yh = iy_c - w - height;
+    int32_t xl = - w - ix;
+    int32_t yl = - w - iy;
+    int32_t xh = ixx - w - width;
+    int32_t yh = iyy - w - height;
     int32_t c = VS_MAX(VS_MIN(VS_MAX(xl, VS_MAX(yl, VS_MAX(xh, yh))),w),0);
     // pixel at border of source image
-    short val_border = PIX(img, linesize, VS_MAX(VS_MIN(ix_f, width-1),0),
-                           VS_MAX(VS_MIN(iy_f, height-1),0));
+    short val_border = PIX(img, linesize, VS_MAX(VS_MIN(ix, width-1),0),
+                           VS_MAX(VS_MIN(iy, height-1),0));
     int32_t res = (def * c + val_border * (w - c)) / w;
     *rv = (res >= 0) ? ((res < 255) ? res : 255) : 0;
   }else{
-    short v1 = PIXEL(img, linesize, ix_c, iy_c, width, height, def);
-    short v2 = PIXEL(img, linesize, ix_c, iy_f, width, height, def);
-    short v3 = PIXEL(img, linesize, ix_f, iy_c, width, height, def);
-    short v4 = PIXEL(img, linesize, ix_f, iy_f, width, height, def);
-    fp16 x_f = iToFp16(ix_f);
-    fp16 x_c = iToFp16(ix_c);
-    fp16 y_f = iToFp16(iy_f);
-    fp16 y_c = iToFp16(iy_c);
+    short v1 = PIXEL(img, linesize, ixx, iyy, width, height, def);
+    short v2 = PIXEL(img, linesize, ixx, iy, width, height, def);
+    short v3 = PIXEL(img, linesize, ix, iyy, width, height, def);
+    short v4 = PIXEL(img, linesize, ix, iy, width, height, def);
+    fp16 x_f = iToFp16(ix);
+    fp16 x_c = iToFp16(ixx);
+    fp16 y_f = iToFp16(iy);
+    fp16 y_c = iToFp16(iyy);
     fp16 s   = fp16To8(v1*(x - x_f)+v3*(x_c - x))*fp16To8(y - y_f) +
       fp16To8(v2*(x - x_f) + v4*(x_c - x))*fp16To8(y_c - y) + 1;
     int32_t res = fp16ToIRound(s);
@@ -105,21 +110,17 @@ inline void interpolateBiLinBorder(uint8_t * const rv, const int32_t x, const in
  } 
 #else
 // perf: ~0.0% change in perf with _inline_ 10% decrease without static
-static short bicub_kernel(fp16 t, short a0, short a1, short a2, short a3){  
+static short bicub_kernel(const fp16 t, const short a0, const short a1, const short a2, const short a3){  
   // (2*a1 + t*((-a0+a2) + t*((2*a0-5*a1+4*a2-a3) + t*(-a0+3*a1-3*a2+a3) )) ) / 2;
   // we add 1/2 because of truncation errors
-  return fp16ToIRound((iToFp16(2*a1) + t*(-a0+a2
-                                          + fp16ToIRound(t*((2*a0-5*a1+4*a2-a3)
-                                                            + fp16ToIRound(t*(-a0+3*a1-3*a2+a3)) )) )
-                       ) >> 1);
+  return fp16ToIRound((iToFp16(2*a1) + t*(-a0+a2 + fp16ToIRound(t*((2*a0-5*a1+4*a2-a3) + fp16ToIRound(t*(-a0+3*a1-3*a2+a3)) )) )) >> 1);
 }
 #endif
-
 // perf: ~0% perf improvement with _inline_ hint
 /**
  * bi-cubic interpolation function using 4x4 pixel, see interpolate
  */
-inline void interpolateBiCub(uint8_t * const rv, const int32_t x, const int32_t y,
+inline void interpolateBiCub(uint8_t * const rv, const fp16 x, const fp16 y,
                                  const uint8_t * const img, const int linesize,
                                  const int width, const int height, const uint8_t def)                    
 {
@@ -150,46 +151,83 @@ inline void interpolateBiCub(uint8_t * const rv, const int32_t x, const int32_t 
 }
 
 /** interpolateBiLin: bi-linear interpolation function, see interpolate */
-void interpolateBiLin(uint8_t * const rv, const int32_t x, const int32_t y,
+void interpolateBiLin(uint8_t * const rv, const fp16 x, const fp16 y,
                                  const uint8_t * const img, const int linesize,
                                  const int width, const int height, const uint8_t def)
 {
-  int32_t ix_f = fp16ToI(x);
-  int32_t iy_f = fp16ToI(y);
-  if (unlikely(ix_f < 0 || ix_f > width - 2 || iy_f < 0 || iy_f > height - 2)) {
+  //rounds down
+  const int32_t ix = fp16ToI(x);
+  const int32_t iy = fp16ToI(y);
+  
+  if (unlikely( (ix < 0) || (ix > (width - 2)) || (iy < 0) || (iy > (height - 2)) )) {
     interpolateBiLinBorder(rv, x, y, img, linesize, width, height, def);
   } else {
-    int32_t ix_c = ix_f + 1;
-    int32_t iy_c = iy_f + 1;
-    short v1 = PIX(img, linesize, ix_c, iy_c);
-    short v2 = PIX(img, linesize, ix_c, iy_f);
-    short v3 = PIX(img, linesize, ix_f, iy_c);
-    short v4 = PIX(img, linesize, ix_f, iy_f);
-    fp16 x_f = iToFp16(ix_f);
-    fp16 x_c = iToFp16(ix_c);
-    fp16 y_f = iToFp16(iy_f);
-    fp16 y_c = iToFp16(iy_c);
-    fp16 s  = fp16To8(v1*(x - x_f) + v3*(x_c - x))*fp16To8(y - y_f) +
-      fp16To8(v2*(x - x_f) + v4*(x_c - x))*fp16To8(y_c - y);
+    const int32_t ixx = ix + 1;
+    const int32_t iyy = iy + 1;
+
+    /*
+     * https://en.wikipedia.org/wiki/Bilinear_interpolation#Application_in_image_processing
+     * 
+     *         
+     * Cj   [c] ----- [d]      
+     * Cf    | [z]     |
+     *       |         |
+     *       |         |    col /\
+     * Ci   [a] ----- [b]   row -->
+     *       Rk Rf     Rl
+     * 
+     *  I[Ci,Rf] = (Rl-Rf).a        +  (Rf-Rk).b
+     *  I[Cj,Rf] = (Rl-Rf).c        +  (Rl-Rf).d
+     *  I[Rf,Cf] = (Cj-Cf).I[Ci,Rf] +  (Cf-Ci).I[Cj,Rf]   <----result (i.e. value at z)
+     */
+// #define WIKI_EXP
+#ifdef WIKI_EXP
+    // Easier to read but 10% slower
+    const short a = PIX(img, linesize, ix, iy);     // a
+    const short b = PIX(img, linesize, ixx, iy);    // b
+    const short c = PIX(img, linesize, ix, iyy);    // c
+    const short d = PIX(img, linesize, ixx, iyy);   // d
+
+    const float xF = fp16ToF(x);
+    const float yF = fp16ToF(y);
+    float parts[3];
+    parts[0] = ((xF-ix) * b) + ((ixx - xF) * a);
+    parts[1] = ((xF-ix) * d) + ((ixx - xF) * c);
+    parts[2] = ((yF-iy) * parts[0]) + ((iyy - yF) * parts[1]);
+    const short res = parts[2];
+#else    
+
+    const fp16 x_f = iToFp16(ix);                  
+    const fp16 x_c = iToFp16(ixx);                 
+    const fp16 y_f = iToFp16(iy);                  
+    const fp16 y_c = iToFp16(iyy);                 
+    const short v1 = PIX(img, linesize, ixx, iyy); 
+    const short v2 = PIX(img, linesize, ixx, iy);  
+    const short v3 = PIX(img, linesize, ix, iyy);  
+    const short v4 = PIX(img, linesize, ix, iy);   
+
+    const fp16 s  = fp16To8(v1*(x - x_f) + v3*(x_c - x)) * fp16To8(y - y_f) + fp16To8(v2*(x - x_f) + v4*(x_c - x))*fp16To8(y_c - y);
     // it is underestimated due to truncation, so we add one
-    short res = fp16ToI(s);
+    const short res = fp16ToI(s);
+#endif
+    // 0 >= res <= 255
     *rv = (res >= 0) ? ((res < 255) ? res+1 : 255) : 0;
   }
 }
 
 /** interpolateLin: linear (only x) interpolation function, see interpolate */
-inline void interpolateLin(uint8_t * const rv, const int32_t x, const int32_t y,
+inline void interpolateLin(uint8_t * const rv, const fp16 x, const fp16 y,
                                  const uint8_t * const img, const int linesize,
                                  const int width, const int height, const uint8_t def)
 {
-  int32_t ix_f = fp16ToI(x);
-  int32_t ix_c = ix_f + 1;
-  fp16    x_c  = iToFp16(ix_c);
-  fp16    x_f  = iToFp16(ix_f);
+  int32_t ix = fp16ToI(x);
+  int32_t ixx = ix + 1;
+  fp16    x_c  = iToFp16(ixx);
+  fp16    x_f  = iToFp16(ix);
   int     y_n  = fp16ToIRound(y);
 
-  short v1 = PIXEL(img, linesize, ix_c, y_n, width, height, def);
-  short v2 = PIXEL(img, linesize, ix_f, y_n, width, height, def);
+  short v1 = PIXEL(img, linesize, ixx, y_n, width, height, def);
+  short v2 = PIXEL(img, linesize, ix, y_n, width, height, def);
   fp16 s   = v1*(x - x_f) + v2*(x_c - x);
   short res = fp16ToI(s);
   *rv = (res >= 0) ? ((res < 255) ? res : 255) : 0;
@@ -226,21 +264,21 @@ inline void interpolateN(uint8_t *rv, fp16 x, fp16 y,
                          int width, int height,
                          uint8_t N, uint8_t channel, uint8_t def)
 {
-  int32_t ix_f = fp16ToI(x);
-  int32_t iy_f = fp16ToI(y);
-  if (ix_f < 0 || ix_f > width-1 || iy_f < 0 || iy_f > height - 1) {
+  int32_t ix = fp16ToI(x);
+  int32_t iy = fp16ToI(y);
+  if (ix < 0 || ix > width-1 || iy < 0 || iy > height - 1) {
     *rv = def;
   } else {
-    int32_t ix_c = ix_f + 1;
-    int32_t iy_c = iy_f + 1;
-    short v1 = PIXN(img, img_linesize, ix_c, iy_c, N, channel);
-    short v2 = PIXN(img, img_linesize, ix_c, iy_f, N, channel);
-    short v3 = PIXN(img, img_linesize, ix_f, iy_c, N, channel);
-    short v4 = PIXN(img, img_linesize, ix_f, iy_f, N, channel);
-    fp16 x_f = iToFp16(ix_f);
-    fp16 x_c = iToFp16(ix_c);
-    fp16 y_f = iToFp16(iy_f);
-    fp16 y_c = iToFp16(iy_c);
+    int32_t ixx = ix + 1;
+    int32_t iyy = iy + 1;
+    short v1 = PIXN(img, img_linesize, ixx, iyy, N, channel);
+    short v2 = PIXN(img, img_linesize, ixx, iy, N, channel);
+    short v3 = PIXN(img, img_linesize, ix, iyy, N, channel);
+    short v4 = PIXN(img, img_linesize, ix, iy, N, channel);
+    fp16 x_f = iToFp16(ix);
+    fp16 x_c = iToFp16(ixx);
+    fp16 y_f = iToFp16(iy);
+    fp16 y_c = iToFp16(iyy);
     fp16 s  = fp16To8(v1*(x - x_f)+v3*(x_c - x))*fp16To8(y - y_f) +
       fp16To8(v2*(x - x_f) + v4*(x_c - x))*fp16To8(y_c - y);
     int32_t res = fp16ToIRound(s);
@@ -362,10 +400,15 @@ int transformPlanar(VSTransformData* td, VSTransform t)
      *      p_s = M^{-1}(p_d - c_d - t) + c_s
      */
 #ifdef USE_OMP
-    #pragma omp parallel for //shared(td,destData) // ~66.0% performance improvement
+    if (td->conf.threadCount < 1) {
+      // default to half available threads. 
+      td->conf.threadCount = omp_get_num_threads()/2;
+    }
+    omp_set_num_threads(td->conf.threadCount);
+    #pragma omp parallel for
 #endif
     for (int32_t y = 0; y < destHeight; y++) {
-      // swapping of the loops brought 15% performace gain
+      // swapping of the loops brought 15% performance gain
       const int32_t y_d1 = y - c_d_y;
       for (int32_t x = 0; x < destWidth; x++) {
         const int32_t x_d1 = x - c_d_x;

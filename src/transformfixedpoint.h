@@ -25,10 +25,7 @@
 #define __TRANSFORMFIXEDPOINT_H
 
 #include "transformtype.h"
-#include <stdint.h>
 
-typedef int32_t fp8;
-typedef int32_t fp16; // also ncot definition of interpolFun in transform.h
 
 struct _VSTransformData;
 
@@ -39,19 +36,19 @@ int transformPacked(struct _VSTransformData* td, VSTransform t);
 int transformPlanar(struct _VSTransformData* td, VSTransform t);
 
 /* forward declarations, please see .c file for documentation*/
-void interpolateBiLinBorder(uint8_t * const rv, const int32_t x, const int32_t y,
+void interpolateBiLinBorder(uint8_t * const rv, const fp16 x, const fp16 y,
                                  const uint8_t * const img, const int linesize,
                                  const int width, const int height, const uint8_t def);
-void interpolateBiCub(uint8_t * const rv, const int32_t x, const int32_t y,
+void interpolateBiCub(uint8_t * const rv, const fp16 x, const fp16 y,
                                  const uint8_t * const img, const int linesize,
                                  const int width, const int height, const uint8_t def);
-void interpolateBiLin(uint8_t * const rv, const int32_t x, const int32_t y,
+void interpolateBiLin(uint8_t * const rv, const fp16 x, const fp16 y,
                                  const uint8_t * const img, const int linesize,
                                  const int width, const int height, const uint8_t def);
-void interpolateLin(uint8_t * const rv, const int32_t x, const int32_t y,
+void interpolateLin(uint8_t * const rv, const fp16 x, const fp16 y,
                                  const uint8_t * const img, const int linesize,
                                  const int width, const int height, const uint8_t def);
-void interpolateZero(uint8_t * const rv, const int32_t x, const int32_t y,
+void interpolateZero(uint8_t * const rv, const fp16 x, const fp16 y,
                                  const uint8_t * const img, const int linesize,
                                  const int width, const int height, const uint8_t def);
                                  

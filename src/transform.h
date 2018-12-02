@@ -73,7 +73,7 @@ typedef enum { VSOptimalL1 = 0, VSGaussian, VSAvg } VSCamPathAlgo;
  * @param default   - value if coordinates are out of range
  * @return void
  */
-typedef void (*vsInterpolateFun)(uint8_t * const rv, const int32_t x, const int32_t y,
+typedef void (*vsInterpolateFun)(uint8_t * const rv, const fp16 x, const fp16 y,
                                  const uint8_t * const img, const int linesize,
                                  const int width, const int height, const uint8_t def);
 
@@ -101,6 +101,7 @@ typedef struct _VSTransformConfig {
     int            storeTransforms; // stores calculated transforms to file
     int            smoothZoom;   // if 1 the zooming is also smoothed. Typically not recommended.
     VSCamPathAlgo  camPathAlgo;  // algorithm to use for camera path optimization
+    int            threadCount; // number of threads to use for transform
 } VSTransformConfig;
 
 typedef struct _VSTransformData {
@@ -154,6 +155,7 @@ static const char vs_transform_help[] = ""
     "    'sharpen'   amount of sharpening: 0: no sharpening (def: 0.8)\n"
     "                uses filter unsharp with 5x5 matrix\n"
     "    'tripod'    virtual tripod mode (=relative=0:smoothing=0)\n"
+    " 'threadcount'  amount of threads used for transforms (def: half available)\n"
     "    'help'      print this help message\n";
 
 /** returns the default config
