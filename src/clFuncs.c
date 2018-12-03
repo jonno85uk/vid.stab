@@ -1,5 +1,5 @@
 
-
+#ifdef USE_OPENCL //FIXME:TEMPORARY: do in cmake
 #include "clFuncs.h"
 #include <stdio.h>
 #include <string.h>
@@ -179,3 +179,5 @@ cl_int clTransform(VSTransformData* const td, const VSTransform t)
     }
     return ret;
 }
+
+#endif

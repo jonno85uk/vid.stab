@@ -31,8 +31,9 @@
 #include "transformfixedpoint.h"
 #include "transform.h"
 #include "transformtype_operations.h"
-
+#ifdef USE_OPENCL
 #include "clFuncs.h"
+#endif
 
 #define iToFp8(v)  ((v)<<8)
 #define fToFp8(v)  ((int32_t)((v)*((float)0xFF)))
