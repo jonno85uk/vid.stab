@@ -32,6 +32,8 @@
 #include "transform.h"
 #include "transformtype_operations.h"
 
+#include "clFuncs.h"
+
 #define iToFp8(v)  ((v)<<8)
 #define fToFp8(v)  ((int32_t)((v)*((float)0xFF)))
 #define iToFp16(v) ((v)<<16)
@@ -358,6 +360,17 @@ int transformPacked(VSTransformData* td, VSTransform t)
  */
 int transformPlanar(VSTransformData* td, VSTransform t)
 {
+#ifdef MESSAROUND
+  clTransform(td, t);
+  // vsFrameCopyPlane(&td->destbuf, &td->src, &td->fiSrc, 1);
+  vsFrameCopyPlane(&td->destbuf, &td->src, &td->fiSrc, 1);
+  vsFrameCopyPlane(&td->destbuf, &td->src, &td->fiSrc, 2);
+  vsFrameCopyPlane(&td->destbuf, &td->src, &td->fiSrc, 3);
+
+  // vsFrameCopy(&td->destbuf, &td->src, &td->fiSrc);
+  return VS_OK;
+#endif
+
   if ( (t.alpha==0) && (t.x==0) && (t.y==0) && (t.zoom == 0) ) {
     if(vsFramesEqual(&td->src, &td->destbuf))
       return VS_OK; // noop
@@ -399,7 +412,16 @@ int transformPlanar(VSTransformData* td, VSTransform t)
      *  t the translation, and M the rotation and scaling matrix
      *      p_s = M^{-1}(p_d - c_d - t) + c_s
      */
-#ifdef USE_OMP
+
+
+#ifdef USE_ACC
+    // #pragma acc data copyin(t, td->src, td->conf) copyout(td->destbuf)
+    {
+      #pragma acc kernels
+      {
+        // #pragma acc loop gang vector
+        {
+#elseif USE_OMP
     if (td->conf.threadCount < 1) {
       // default to half available threads. 
       td->conf.threadCount = omp_get_num_threads()/2;
@@ -422,6 +444,11 @@ int transformPlanar(VSTransformData* td, VSTransform t)
                         td->src.linesize[plane], sourceWidth, sourceHeight, def);
       }//for
     }//for
+#ifdef USE_ACC
+        }
+      }
+    }
+#endif
   }
 
   return VS_OK;
