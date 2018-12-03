@@ -1,0 +1,97 @@
+../configure --prefix=/usr/local/ --enable-gpl --enable-libvidstab --enable-libmp3lame --enable-libx264 --enable-vaapi --enable-opencl --enable-runtime-cpudetect --enable-debug=3
+
+cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr/local/ -DCMAKE_BUILD_TYPE=Debug ../
+xargs rm < install_manifest.txt
+
+
+
+
+  // const float pos = fp16ToF(t);
+  // float parts[4];
+  // parts[0] = 2 * b;
+  // parts[1] = -a + c;
+  // parts[2] = (2*a) - (5*b) + (4*c) - d;
+  // parts[3] = -a + (3*b) - (3*c) + d;
+  // return (short)(parts[0] +  (pos * (parts[1] + pos * (parts[2] + pos * parts[3])))) >> 1;
+
+
+
+
+int tblsPopulated = 0;
+volatile int32_t mantissaTable[2028];
+volatile int32_t exponentTable[64];
+volatile int32_t offsetTable[64];
+
+/*
+ * http://www.fox-toolkit.org/ftp/fasthalffloatconversion.pdf
+ */
+uint32_t convertmantissa(const uint32_t val)
+{
+  uint32_t m = val << 13;       // zero pad mantissa bits
+  uint32_t e = 0;               // zero exponent
+  while (!(m & 0x00800000)) {   // while not normalised
+    e -= 0x00800000;            // Decrement exponent (1<<23)
+    m <<= 1;                    // shift mantissa
+  }
+  m &= ~0x00800000;             // clear leading 1 bit
+  e += 0x38800000;              // adjust bias ((127-14) << 23)
+  return m | e;
+} 
+
+void popMantissa()
+{
+  mantissaTable[0] = 0;
+  for (int32_t i = 1; i < 2047; i++)
+  {
+    if (i < 1024) {
+      mantissaTable[i] = convertmantissa(i);
+    }
+    else {
+      mantissaTable[i] = 0x38000000 + ((i - 1024) << 13);
+    }
+  }//for
+}
+void popExponent()
+{
+  exponentTable[0] = 0;
+  for (int32_t i = 1; i < 64; i++) {
+    if (i == 31) {
+      exponentTable[i] = 0x47800000;
+    } else if (i == 32) {
+      exponentTable[i] = 0x80000000;
+    }
+    else if (i == 63) {
+      exponentTable[i] = 0xC7800000;
+    } else if (i < 31) {  // 1..30
+      exponentTable[i] = i << 23;
+    } else {              // 33..62
+      exponentTable[i] = 0x80000000 + ((i - 32) << 23);
+    }
+  }//for
+}
+void popOffset()
+{
+  offsetTable[0]  = 0;
+  offsetTable[32] = 0;
+  for (int32_t i = 1; i < 64; i++) {
+    if (i != 32) {
+      offsetTable[i] = 1024;
+    }
+  }//for
+}
+
+float fp16ToF(const fp16 val)
+{
+  if (unlikely(tblsPopulated == 0)) {
+    popMantissa();
+    popExponent();
+    popOffset();
+    tblsPopulated = 1;
+  }
+  const int32_t exponent = exponentTable[val>>10];
+  const int32_t mantissa = mantissaTable[offsetTable[val>>10]+(val&0x3ff)];
+  const float result = (float)(mantissa + exponent);
+  return result;
+}
+
+#endif
