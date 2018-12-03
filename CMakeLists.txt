@@ -80,6 +80,3 @@ INSTALL(TARGETS vidstab
 
 include(create_pkgconfig_file)
 create_pkgconfig_file(vidstab "Vid.Stab, a library for stabilizing video clips")
-
-nvidia-headless-390
-gcc-offload-nvptx
