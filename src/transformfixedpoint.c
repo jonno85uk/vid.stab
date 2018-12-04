@@ -360,6 +360,15 @@ int transformPacked(VSTransformData* td, VSTransform t)
  */
 int transformPlanar(VSTransformData* td, VSTransform t)
 {
+#ifdef USE_OMP
+  // makes ~zero peformance difference. just "looks" better
+  if (td->conf.threadCount < 1) {
+    // default to half available threads. 
+    td->conf.threadCount = omp_get_num_threads()/2;
+  }
+  omp_set_num_threads(td->conf.threadCount);
+#endif
+
   if ( (t.alpha==0) && (t.x==0) && (t.y==0) && (t.zoom == 0) ) {
     if(vsFramesEqual(&td->src, &td->destbuf))
       return VS_OK; // noop
@@ -405,11 +414,6 @@ int transformPlanar(VSTransformData* td, VSTransform t)
      *      p_s = M^{-1}(p_d - c_d - t) + c_s
      */
 #ifdef USE_OMP
-    if (td->conf.threadCount < 1) {
-      // default to half available threads. 
-      td->conf.threadCount = omp_get_num_threads()/2;
-    }
-    omp_set_num_threads(td->conf.threadCount);
     #pragma omp parallel for
 #endif
     for (int32_t y = 0; y < destHeight; y++) {
