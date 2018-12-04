@@ -36,7 +36,7 @@
 #include <string.h>
 
 const char* interpol_type_names[5] = {"No (0)", "Linear (1)", "Bi-Linear (2)",
-                                      "Bi-Cubic (3)"};
+                                      "Bi-Cubic (3)", "Bi-CubicLin (4)"};
 
 const char* getInterpolationTypeName(VSInterpolType type){
   if (type >= VS_Zero && type < VS_NBInterPolTypes)
@@ -101,9 +101,9 @@ int vsTransformDataInit(VSTransformData* td, const VSTransformConfig* conf,
   if (td->conf.maxShift > td->fiDest.height/2)
     td->conf.maxShift = td->fiDest.height/2;
 
-  td->conf.interpolType = VS_MAX(VS_MIN(td->conf.interpolType,VS_BiCubic),VS_Zero);
+  td->conf.interpolType = VS_MAX(VS_MIN(td->conf.interpolType,VS_BiCubicLin),VS_Zero);
 
-  // not yet implemented
+  // TODO: orig comment "not yet implemented". Check this.
   if(td->conf.camPathAlgo==VSOptimalL1) td->conf.camPathAlgo=VSGaussian;
 
   switch(td->conf.interpolType){
@@ -111,6 +111,7 @@ int vsTransformDataInit(VSTransformData* td, const VSTransformConfig* conf,
    case VS_Linear:   td->interpolate = &interpolateLin; break;
    case VS_BiLinear: td->interpolate = &interpolateBiLin; break;
    case VS_BiCubic:  td->interpolate = &interpolateBiCub; break;
+   case VS_BiCubicLin: td->interpolate = NULL; break;
    default: td->interpolate = &interpolateBiLin;
   }
 #ifdef TESTING

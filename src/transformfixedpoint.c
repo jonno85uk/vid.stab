@@ -53,6 +53,8 @@
 #define fp16_0_5 (1<<15)
 #define fp16ToIRound(v) (((v) + fp16_0_5) >> 16)
 
+#define LUMA_CHANNEL 0
+
 /** interpolateBiLinBorder: bi-linear interpolation function that also works at the border.
     This is used by many other interpolation methods at and outsize the border, see interpolate */
 inline void interpolateBiLinBorder(uint8_t * const rv, const fp16 x, const fp16 y,
@@ -95,10 +97,10 @@ inline void interpolateBiLinBorder(uint8_t * const rv, const fp16 x, const fp16 
     in matrix notation:
     a0-a3 are the neigthboring points where the target point is between a1 and a2
     t is the point of interpolation (position between a1 and a2) value between 0 and 1
-    | 0, 2, 0, 0 |  |a0|
-    |-1, 0, 1, 0 |  |a1|
+                  | 0, 2, 0, 0 |  |a0|
+                  |-1, 0, 1, 0 |  |a1|
     (1,t,t^2,t^3) | 2,-5, 4,-1 |  |a2|
-    |-1, 3,-3, 1 |  |a3|
+                  |-1, 3,-3, 1 |  |a3|
 */
 #ifdef TESTING
  inline static short bicub_kernel(fp16 t, short a0, short a1, short a2, short a3){ 
@@ -372,6 +374,9 @@ int transformPlanar(VSTransformData* td, VSTransform t)
   for (int plane = 0; plane < td->fiSrc.planes; plane++) {
     const uint8_t * const srcData  = td->src.data[plane];
     uint8_t * const destData       = td->destbuf.data[plane];
+    const int linesize = td->destbuf.linesize[plane];
+    const VSBorderType border = td->conf.crop;
+    const VSInterpolType interpolType = td->conf.interpolType;
     
     const int wsub          = vsGetPlaneWidthSubS(&td->fiSrc, plane);
     const int hsub          = vsGetPlaneHeightSubS(&td->fiSrc, plane);
@@ -414,12 +419,22 @@ int transformPlanar(VSTransformData* td, VSTransform t)
         const int32_t x_d1 = x - c_d_x;
         const fp16 x_s = (zcos_a * x_d1) + (zsin_a * y_d1) + c_tx;
         const fp16 y_s = (-zsin_a * x_d1) + (zcos_a * y_d1) + c_ty;
-        const uint32_t index = x + (y * td->destbuf.linesize[plane]);
+        const uint32_t index = x + (y * linesize);
         uint8_t * const dest = &destData[index];
-        const uint8_t def = td->conf.crop ? black : *dest;
+        const uint8_t def = border ? black : *dest;
         // inlining the interpolation function brings no performance change
-        td->interpolate(dest, x_s, y_s, srcData,
-                        td->src.linesize[plane], sourceWidth, sourceHeight, def);
+        if (likely(interpolType != VS_BiCubicLin)) {
+          td->interpolate(dest, x_s, y_s, srcData, linesize, sourceWidth, sourceHeight, def);
+        } else {
+          vsInterpolateFun interpolate;
+          if (unlikely(plane == LUMA_CHANNEL)) {
+             interpolate = &interpolateBiCub;
+          } else {
+            interpolate = &interpolateBiLin;
+          }
+          interpolate(dest, x_s, y_s, srcData, linesize, sourceWidth, sourceHeight, def);
+        }
+
       }//for
     }//for
   }

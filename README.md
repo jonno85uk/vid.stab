@@ -182,11 +182,13 @@ ffmpeg -i input.mp4 -vf vidstabdetect=shakiness=5:show=1 dummy_output.mp4
   <br><i><b>linear</b></i>: Linear only horizontal.
   <br><i><b>bilinear</b></i>: Linear in both directions (default).
   <br><i><b>bicubic</b></i>: Cubic in both directions (slow speed).
+  <br><i><b>bicubiclin</b></i>: bicubic on the luminosity channel only. bilinear otherwise 
+  <dd> <b>NOTE</b> As of 04/12/18 ffmpeg requires patching in order for bicubiclin to be used. See the included patch.</dd>
   <dt><b>threadcount</b></dt>
   <dd>Specify the number of threads to use for transforming a frame. Range is from 0. default value is 1/2 available threads.</dd>
   <dd> <b>NOTE</b> This value should be tuned for the interpolation algorithm and encoding codec. 
   If too many threads are used it can hinder performance.</dd>
-  <dd> <b>NOTE</b> As of 02/11/18 ffmpeg requires patching in order for this option to be used. See the included patch.</dd>
+  <dd> <b>NOTE</b> As of 02/12/18 ffmpeg requires patching in order for this option to be used. See the included patch.</dd>
   <dt><b>tripod</b></dt>
   <dd>Enables virtual tripod mode if set to 1, which is equivalent to <b>relative=0:smoothing=0</b>. Default value is 0.
   <br>NOTE: If this mode has been used in first pass then only it should be used in second pass.</dd>

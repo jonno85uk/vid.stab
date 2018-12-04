@@ -50,7 +50,7 @@ typedef struct _vsslidingavgtrans {
 
 
 /// interpolation types
-typedef enum { VS_Zero, VS_Linear, VS_BiLinear, VS_BiCubic, VS_NBInterPolTypes} VSInterpolType;
+typedef enum { VS_Zero, VS_Linear, VS_BiLinear, VS_BiCubic, VS_BiCubicLin, VS_NBInterPolTypes} VSInterpolType;
 
 /// returns a name for the interpolation type
 const char* getInterpolationTypeName(VSInterpolType type);
@@ -151,7 +151,7 @@ static const char vs_transform_help[] = ""
     "    'zoomspeed' for adaptive zoom: zoom per frame in percent \n"
     "    'interpol'  type of interpolation: 0: no interpolation, \n"
     "                1: linear (horizontal), 2: bi-linear (def), \n"
-    "                3: bi-cubic\n"
+    "                3: bi-cubic\n, 4: bi-cublin\n"
     "    'sharpen'   amount of sharpening: 0: no sharpening (def: 0.8)\n"
     "                uses filter unsharp with 5x5 matrix\n"
     "    'tripod'    virtual tripod mode (=relative=0:smoothing=0)\n"
