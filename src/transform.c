@@ -111,7 +111,16 @@ int vsTransformDataInit(VSTransformData* td, const VSTransformConfig* conf,
    case VS_Linear:   td->interpolate = &interpolateLin; break;
    case VS_BiLinear: td->interpolate = &interpolateBiLin; break;
    case VS_BiCubic:  td->interpolate = &interpolateBiCub; break;
-   case VS_BiCubicLin: td->interpolate = NULL; break;
+   case VS_BiCubicLin: 
+    if (td->fiSrc.planes >= 3) {
+      td->interpolate = NULL;
+    } else {
+      td->interpolate = &interpolateBiLin;
+      td->conf.interpolType = VS_BiLinear;
+      vs_log_warn(td->conf.modName, 
+        "unsupported pixelformat '%d' for bicublin. reverting to bilinear\n", td->fiSrc.pFormat);
+    } 
+    break;
    default: td->interpolate = &interpolateBiLin;
   }
 #ifdef TESTING
