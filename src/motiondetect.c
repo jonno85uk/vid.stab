@@ -724,11 +724,9 @@ LocalMotions calcTransFields(VSMotionDetect* md,
     m = fieldfunc(md, fields, &fields->fields[i], i); // e.g. calcFieldTransPlanar
     if(m.match >= 0){
       m.contrast = ((contrast_idx*)vs_vector_get(&goodflds,index))->contrast;
-#ifdef STABVERBOSE
-      fprintf(file, "%i %i\n%f %f %f %f\n \n\n", m.f.x, m.f.y,
-              m.f.x + m.v.x, m.f.y + m.v.y, m.match, m.contrast);
-#endif
+#ifdef USE_OMP
 #pragma omp critical(localmotions_append)
+#endif
       vs_vector_append_dup(&localmotions, &m, sizeof(LocalMotion));
     }
   }
