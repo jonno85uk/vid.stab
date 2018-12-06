@@ -28,16 +28,12 @@ A video acquired using a hand-held camera or a camera mounted on a vehicle, typi
  * A Linux-based system
  * ffmpeg source code
  * Cmake
+ * yasm
+ * pkg-config
   
 ## Installation Instructions
 
 For using vidstab library with ffmpeg, ffmpeg must to be configured using `--enable-libvidstab ` option.
-
-Additionally, in order to build ffmpeg with the vid.stab library the following must be installed:
-
- * yasm
- * pkg-config
- * cmake
 
 ### Default Build and Installation:
 ##### Installing vidstab library:

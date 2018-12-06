@@ -50,15 +50,6 @@ add_library (vidstab ${SOURCES})
 #set version of lib
 set_target_properties(vidstab PROPERTIES SOVERSION ${MAJOR_VERSION}.${MINOR_VERSION})
 
-
-
-option(USE_OPENCL "use opencl use OPENCL" ON)
-if(USE_OPENCL)
-  include_directories(AFTER SYSTEM /opt/amdgpu-pro/include/)
-  find_library(OPENCL OpenCL HINTS /opt/amdgpu-pro/lib/x86_64-linux-gnu/)
-  target_link_libraries(vidstab PUBLIC ${OPENCL})
-endif()
-
 target_link_libraries(vidstab m)
 set(PKG_EXTRA_LIBS -lm)
 if(USE_OMP)

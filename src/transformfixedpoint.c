@@ -419,11 +419,14 @@ int transformPlanar(VSTransformData* td, VSTransform t)
     for (int32_t y = 0; y < destHeight; y++) {
       // swapping of the loops brought 15% performance gain
       const int32_t y_d1 = y - c_d_y;
+      const fp16 sinPart = (zsin_a * y_d1) + c_tx;
+      const fp16 cosPart = (zcos_a * y_d1) + c_ty;
+      const fp16 indexPart =  (y * linesize);
       for (int32_t x = 0; x < destWidth; x++) {
         const int32_t x_d1 = x - c_d_x;
-        const fp16 x_s = (zcos_a * x_d1) + (zsin_a * y_d1) + c_tx;
-        const fp16 y_s = (-zsin_a * x_d1) + (zcos_a * y_d1) + c_ty;
-        const uint32_t index = x + (y * linesize);
+        const fp16 x_s = (zcos_a * x_d1) + sinPart;
+        const fp16 y_s = (-zsin_a * x_d1) + cosPart;
+        const uint32_t index = x + indexPart;
         uint8_t * const dest = &destData[index];
         const uint8_t def = border ? black : *dest;
         // inlining the interpolation function brings no performance change
