@@ -430,7 +430,7 @@ int transformPlanar(VSTransformData* td, VSTransform t)
         uint8_t * const dest = &destData[index];
         const uint8_t def = border ? black : *dest;
         // inlining the interpolation function brings no performance change
-        if (likely(interpolType != VS_BiCubicLin)) {
+        if (likely(interpolType != VS_BiCubLin)) {
           td->interpolate(dest, x_s, y_s, srcData, linesize, sourceWidth, sourceHeight, def);
         } else {
           vsInterpolateFun interpolate;

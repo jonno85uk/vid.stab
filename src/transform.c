@@ -101,7 +101,7 @@ int vsTransformDataInit(VSTransformData* td, const VSTransformConfig* conf,
   if (td->conf.maxShift > td->fiDest.height/2)
     td->conf.maxShift = td->fiDest.height/2;
 
-  td->conf.interpolType = VS_MAX(VS_MIN(td->conf.interpolType,VS_BiCubicLin),VS_Zero);
+  td->conf.interpolType = VS_MAX(VS_MIN(td->conf.interpolType,VS_BiCubLin),VS_Zero);
 
   // TODO: orig comment "not yet implemented". Check this.
   if(td->conf.camPathAlgo==VSOptimalL1) td->conf.camPathAlgo=VSGaussian;
@@ -111,7 +111,7 @@ int vsTransformDataInit(VSTransformData* td, const VSTransformConfig* conf,
    case VS_Linear:   td->interpolate = &interpolateLin; break;
    case VS_BiLinear: td->interpolate = &interpolateBiLin; break;
    case VS_BiCubic:  td->interpolate = &interpolateBiCub; break;
-   case VS_BiCubicLin: 
+   case VS_BiCubLin: 
     if (td->fiSrc.planes >= 3) {
       td->interpolate = NULL;
     } else {

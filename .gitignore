@@ -12,4 +12,4 @@ install_manifest.txt
 $GIT_DIR/ffmpeg-vidstab/parts
 $GIT_DIR/ffmpeg-vidstab/prime
 $GIT_DIR/ffmpeg-vidstab/stage
-
+ffmpeg-4.1/*

@@ -10,8 +10,8 @@
 ---
 >                    AV_OPT_TYPE_INT,    {.i64 = 2},        0, 4,    FLAGS, "interpol"},
 96a99,100
->     {  "bicubiclin", "bi-cubiclin",                                                       0,
->                    AV_OPT_TYPE_CONST,  {.i64 = VS_BiCubicLin },0, 0,  FLAGS, "interpol"},
+>     {  "bicublin", "bi-cublin",                                                       0,
+>                    AV_OPT_TYPE_CONST,  {.i64 = VS_BiCubLin },0, 0,  FLAGS, "interpol"},
 186a191
 >     tc->conf.threadCount             = 0;
 195a201

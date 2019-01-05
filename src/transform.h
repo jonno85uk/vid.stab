@@ -50,7 +50,7 @@ typedef struct _vsslidingavgtrans {
 
 
 /// interpolation types
-typedef enum { VS_Zero, VS_Linear, VS_BiLinear, VS_BiCubic, VS_BiCubicLin, VS_NBInterPolTypes} VSInterpolType;
+typedef enum { VS_Zero, VS_Linear, VS_BiLinear, VS_BiCubic, VS_BiCubLin, VS_NBInterPolTypes} VSInterpolType;
 
 /// returns a name for the interpolation type
 const char* getInterpolationTypeName(VSInterpolType type);
