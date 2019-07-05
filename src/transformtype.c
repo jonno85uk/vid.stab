@@ -315,7 +315,10 @@ double median(double* ds, int len)
 
 
 /** square of a number */
-double sqr(double x){ return x*x; }
+inline double sqr(double x)
+{ 
+  return x*x; 
+}
 
 /**
  * mean: mean of a double array

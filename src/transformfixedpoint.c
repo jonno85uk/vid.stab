@@ -55,6 +55,21 @@
 
 #define LUMA_CHANNEL 0
 
+#define MAX_PIX_VAL 255
+
+inline void lim_pix_val(uint8_t * const rv, const int res) 
+{
+  if (res>=0) {
+    if (res < MAX_PIX_VAL) {
+      *rv = res;
+    } else {
+      *rv = MAX_PIX_VAL;
+    }
+  } else {
+    *rv = 0;
+  }
+}
+
 /** interpolateBiLinBorder: bi-linear interpolation function that also works at the border.
     This is used by many other interpolation methods at and outsize the border, see interpolate */
 inline void interpolateBiLinBorder(uint8_t * const rv, const fp16 x, const fp16 y,
@@ -76,7 +91,8 @@ inline void interpolateBiLinBorder(uint8_t * const rv, const fp16 x, const fp16 
     short val_border = PIX(img, linesize, VS_MAX(VS_MIN(ix, width-1),0),
                            VS_MAX(VS_MIN(iy, height-1),0));
     int32_t res = (def * c + val_border * (w - c)) / w;
-    *rv = (res >= 0) ? ((res < 255) ? res : 255) : 0;
+    lim_pix_val(rv, res);
+    // *rv = (res >= 0) ? ((res < 255) ? res : 255) : 0;
   }else{
     short v1 = PIXEL(img, linesize, ixx, iyy, width, height, def);
     short v2 = PIXEL(img, linesize, ixx, iy, width, height, def);
@@ -88,8 +104,9 @@ inline void interpolateBiLinBorder(uint8_t * const rv, const fp16 x, const fp16 
     fp16 y_c = iToFp16(iyy);
     fp16 s   = fp16To8(v1*(x - x_f)+v3*(x_c - x))*fp16To8(y - y_f) +
       fp16To8(v2*(x - x_f) + v4*(x_c - x))*fp16To8(y_c - y) + 1;
-    int32_t res = fp16ToIRound(s);
-    *rv = (res >= 0) ? ((res < 255) ? res : 255) : 0;
+    const int32_t res = fp16ToIRound(s);
+    lim_pix_val(rv, res);
+    // *rv = (res >= 0) ? ((res < 255) ? res : 255) : 0;
   }
 }
 
@@ -148,7 +165,8 @@ inline void interpolateBiCub(uint8_t * const rv, const fp16 x, const fp16 y,
     }//for
 
     short res = bicub_kernel(y-y_f, vals[0], vals[1], vals[2], vals[3]);
-    *rv = (res >= 0) ? ((res < 255) ? res : 255) : 0;
+    lim_pix_val(rv, res);
+    // *rv = (res >= 0) ? ((res < 255) ? res : 255) : 0;
   }
 }
 
@@ -213,7 +231,8 @@ void interpolateBiLin(uint8_t * const rv, const fp16 x, const fp16 y,
     const short res = fp16ToI(s);
 #endif
     // 0 >= res <= 255
-    *rv = (res >= 0) ? ((res < 255) ? res+1 : 255) : 0;
+    lim_pix_val(rv, res);
+    //*rv = (res >= 0) ? ((res < 255) ? res+1 : 255) : 0;
   }
 }
 
@@ -232,7 +251,8 @@ inline void interpolateLin(uint8_t * const rv, const fp16 x, const fp16 y,
   short v2 = PIXEL(img, linesize, ix, y_n, width, height, def);
   fp16 s   = v1*(x - x_f) + v2*(x_c - x);
   short res = fp16ToI(s);
-  *rv = (res >= 0) ? ((res < 255) ? res : 255) : 0;
+  lim_pix_val(rv, res);
+  // *rv = (res >= 0) ? ((res < 255) ? res : 255) : 0;
 }
 
 /** interpolateZero: nearest neighbor interpolation function, see interpolate */
@@ -243,7 +263,8 @@ inline void interpolateZero(uint8_t * const rv, const int32_t x, const int32_t y
   int32_t ix_n = fp16ToIRound(x);
   int32_t iy_n = fp16ToIRound(y);
   int32_t res = PIXEL(img, linesize, ix_n, iy_n, width, height, def);
-  *rv = (res >= 0) ? ((res < 255) ? res : 255) : 0;
+  lim_pix_val(rv, res);
+  // *rv = (res >= 0) ? ((res < 255) ? res : 255) : 0;
 }
 
 
@@ -284,7 +305,8 @@ inline void interpolateN(uint8_t *rv, fp16 x, fp16 y,
     fp16 s  = fp16To8(v1*(x - x_f)+v3*(x_c - x))*fp16To8(y - y_f) +
       fp16To8(v2*(x - x_f) + v4*(x_c - x))*fp16To8(y_c - y);
     int32_t res = fp16ToIRound(s);
-    *rv = (res >= 0) ? ((res < 255) ? res : 255) : 0;
+    lim_pix_val(rv, res);
+    // *rv = (res >= 0) ? ((res < 255) ? res : 255) : 0;
   }
 }
 
@@ -395,10 +417,10 @@ int transformPlanar(VSTransformData* td, VSTransform t)
     const int sourceHeight  = CHROMA_SIZE(td->fiSrc.height, hsub);
     const uint8_t black     = (plane == 0) ? 0 : 0x80;
 
-    const fp16 c_s_x = iToFp16(sourceWidth / 2);
-    const fp16 c_s_y = iToFp16(sourceHeight / 2);
-    const int32_t c_d_x = destWidth / 2;
-    const int32_t c_d_y = destHeight / 2;
+    const fp16 c_s_x = iToFp16(sourceWidth >> 1);
+    const fp16 c_s_y = iToFp16(sourceHeight >> 1);
+    const int32_t c_d_x = destWidth >> 1;
+    const int32_t c_d_y = destHeight >> 1;
 
     const fp16 zcos_a = fToFp16(zoomVal * cos(-t.alpha)); // scaled cos
     const fp16 zsin_a = fToFp16(zoomVal * sin(-t.alpha)); // scaled sin

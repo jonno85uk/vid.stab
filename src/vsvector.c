@@ -99,12 +99,13 @@ int vs_vector_append_dup(VSVector *V, void *data, int data_size){
 }
 
 
-void *vs_vector_get(const VSVector *V, int pos){
+void *vs_vector_get(const VSVector *V, const int pos)
+{
   assert(V && V->data);
-  if(pos<0 || pos >= V->nelems)
-    return 0;
-  else
+  if ( (pos >= 0) && (pos < V->nelems) ) {
     return V->data[pos];
+  }
+  return 0;
 }
 
 void* vs_vector_set(VSVector *V, int pos, void *data){
