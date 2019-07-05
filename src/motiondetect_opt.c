@@ -97,7 +97,7 @@ unsigned int compareSubImg_thr_sse2(unsigned char* const I1, unsigned char* cons
   int k, j;
   unsigned char* p1 = NULL;
   unsigned char* p2 = NULL;
-  int s2 = field->size / 2;
+  const int s2 = field->size >> 1;
   unsigned int sum = 0;
 
   static unsigned char mask[16] = {0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00};
