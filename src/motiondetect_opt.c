@@ -91,9 +91,9 @@ double contrastSubImg1_SSE(unsigned char* const I, const Field* field,
 //FIXME: v'slow
 unsigned int compareSubImg_thr_sse2(unsigned char* const I1, unsigned char* const I2,
                                     const Field* field,
-                                    int width1, int width2, int height,
-                                    int bytesPerPixel, int d_x, int d_y,
-                                    unsigned int treshold) {
+                                    const int width1, const int width2, int height,
+                                    const int bytesPerPixel, const int d_x, const int d_y,
+                                    const unsigned int threshold) {
   int k, j;
   unsigned char* p1 = NULL;
   unsigned char* p2 = NULL;
@@ -160,7 +160,7 @@ unsigned int compareSubImg_thr_sse2(unsigned char* const I1, unsigned char* cons
         xmmsum = _mm_setzero_si128();
       }
     }
-    if (sum > treshold)
+    if (sum > threshold)
       break;
     p1 += (width1 - field->size) * bytesPerPixel;
     p2 += (width2 - field->size) * bytesPerPixel;
