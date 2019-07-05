@@ -179,8 +179,7 @@ int vsMotionDetection(VSMotionDetect* md, LocalMotions* motions, VSFrame *frame)
     vsFrameCopy(&md->curr, frame, &md->fi);
   } else {
     // box-kernel smoothing (plain average of pixels), which is fine for us
-    boxblurPlanar(&md->curr, frame, &md->currtmp, &md->fi, md->conf.stepSize*1/*1.4*/,
-               BoxBlurNoColor);
+    boxblurPlanar(&md->curr, frame, &md->currtmp, &md->fi, md->conf.stepSize, BoxBlurNoColor);
     // two times yields tent-kernel smoothing, which may be better, but I don't
     //  think we need it
     //boxblurPlanar(md->curr, md->curr, md->currtmp, &md->fi, md->stepSize*1,
