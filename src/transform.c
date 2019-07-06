@@ -22,6 +22,7 @@
  *
  */
 
+#include <stdbool.h>
 #include "transform.h"
 #include "transform_internal.h"
 #include "transformtype_operations.h"
@@ -35,8 +36,12 @@
 #include <libgen.h>
 #include <string.h>
 
-const char* interpol_type_names[5] = {"No (0)", "Linear (1)", "Bi-Linear (2)",
-                                      "Bi-Cubic (3)", "Bi-CubicLin (4)"};
+static const char* const interpol_type_names[5] = {"No (0)", "Linear (1)", "Bi-Linear (2)", "Bi-Cubic (3)", "Bi-CubicLin (4)"};
+
+inline bool isEqual(const double a, const double b, const double epsilon)
+{
+  return fabs(a - b) < epsilon;
+}
 
 const char* getInterpolationTypeName(VSInterpolType type){
   if (type >= VS_Zero && type < VS_NBInterPolTypes)
@@ -104,7 +109,9 @@ int vsTransformDataInit(VSTransformData* td, const VSTransformConfig* conf,
   td->conf.interpolType = VS_MAX(VS_MIN(td->conf.interpolType,VS_BiCubLin),VS_Zero);
 
   // TODO: orig comment "not yet implemented". Check this.
-  if(td->conf.camPathAlgo==VSOptimalL1) td->conf.camPathAlgo=VSGaussian;
+  if(td->conf.camPathAlgo==VSOptimalL1) {
+      td->conf.camPathAlgo=VSGaussian;
+  }
 
   switch(td->conf.interpolType){
    case VS_Zero:     td->interpolate = &interpolateZero; break;
@@ -123,16 +130,6 @@ int vsTransformDataInit(VSTransformData* td, const VSTransformConfig* conf,
     break;
    default: td->interpolate = &interpolateBiLin;
   }
-#ifdef TESTING
-  switch(td->conf.interpolType){
-   case VS_Zero:     td->_FLT(interpolate) = &_FLT(interpolateZero); break;
-   case VS_Linear:   td->_FLT(interpolate) = &_FLT(interpolateLin); break;
-   case VS_BiLinear: td->_FLT(interpolate) = &_FLT(interpolateBiLin); break;
-   case VS_BiCubic:  td->_FLT(interpolate) = &_FLT(interpolateBiCub); break;
-   default: td->_FLT(interpolate)          = &_FLT(interpolateBiLin);
-  }
-
-#endif
   return VS_OK;
 }
 
@@ -262,8 +259,9 @@ int cameraPathGaussian(VSTransformData* td, VSTransformations* trans){
   }
 
   if (td->conf.smoothing>0) {
-    VSTransform* ts2 = vs_malloc(sizeof(VSTransform) * trans->len);
-    memcpy(ts2, ts, sizeof(VSTransform) * trans->len);
+    const unsigned long sz = sizeof(VSTransform) * (unsigned long)trans->len;
+    VSTransform* ts2 = vs_malloc(sz);
+    memcpy(ts2, ts, sz);
     int s = td->conf.smoothing * 2 + 1;
     VSArray kernel = vs_array_new(s);
     // initialize gaussian kernel
@@ -328,8 +326,9 @@ int cameraPathAvg(VSTransformData* td, VSTransformations* trans){
   }
   if (td->conf.smoothing>0) {
     /* smoothing */
-    VSTransform* ts2 = vs_malloc(sizeof(VSTransform) * trans->len);
-    memcpy(ts2, ts, sizeof(VSTransform) * trans->len);
+    const unsigned long sz = sizeof(VSTransform) * (unsigned long)trans->len;
+    VSTransform* ts2 = vs_malloc(sz);
+    memcpy(ts2, ts, sz);
 
     /*  we will do a sliding average with minimal update
      *   \hat x_{n/2} = x_1+x_2 + .. + x_n
@@ -432,9 +431,11 @@ int vsPreprocessTransforms(VSTransformData* td, VSTransformations* trans)
       ts[i].x     = VS_CLAMP(ts[i].x, -td->conf.maxShift, td->conf.maxShift);
       ts[i].y     = VS_CLAMP(ts[i].y, -td->conf.maxShift, td->conf.maxShift);
     }
-  if (td->conf.maxAngle != - 1.0)
-    for (int i = 0; i < trans->len; i++)
+  if (!isEqual(td->conf.maxAngle, -1.0, 1E-6)) {
+    for (int i = 0; i < trans->len; i++) {
       ts[i].alpha = VS_CLAMP(ts[i].alpha, -td->conf.maxAngle, td->conf.maxAngle);
+    }
+  }
 
   /* Calc optimal zoom (1)
    *  cheap algo is to only consider translations
@@ -457,7 +458,7 @@ int vsPreprocessTransforms(VSTransformData* td, VSTransformations* trans)
    *  in order to avoid too much zooming in and out
    */
   if (td->conf.optZoom == 2 && trans->len > 1){
-    double* zooms=(double*)vs_zalloc(sizeof(double)*trans->len);
+    double* zooms=(double*)vs_zalloc(sizeof(double) * (unsigned long)trans->len);
     int w = td->fiSrc.width;
     int h = td->fiSrc.height;
     double req;
@@ -490,7 +491,7 @@ int vsPreprocessTransforms(VSTransformData* td, VSTransformations* trans)
       req= VS_MAX(meanzoom, req - td->conf.zoomSpeed);
     }
     vs_free(zooms);
-  }else if (td->conf.zoom != 0){ /* apply global zoom */
+  }else if (!isEqual(td->conf.zoom, 0, 1E-6)) { /* apply global zoom */
     for (int i = 0; i < trans->len; i++)
       ts[i].zoom += td->conf.zoom;
   }
@@ -555,8 +556,9 @@ VSTransform vsLowPassTransforms(VSTransformData* td, VSSlidingAvgTrans* mem,
       newtrans.x     = VS_CLAMP(newtrans.x, -td->conf.maxShift, td->conf.maxShift);
       newtrans.y     = VS_CLAMP(newtrans.y, -td->conf.maxShift, td->conf.maxShift);
     }
-    if (td->conf.maxAngle != - 1.0)
+    if (!isEqual(td->conf.maxAngle, -1.0, 1E-6)) {
       newtrans.alpha = VS_CLAMP(newtrans.alpha, -td->conf.maxAngle, td->conf.maxAngle);
+    }
 
     /* Calc sliding optimal zoom
      *  cheap algo is to only consider translations and to sliding avg
@@ -572,7 +574,7 @@ VSTransform vsLowPassTransforms(VSTransformData* td, VSSlidingAvgTrans* mem,
       //  and zoom a little in any case (so set td->zoom to 2 or so)
       newtrans.zoom = mem->zoomavg;
     }
-    if (td->conf.zoom != 0){
+    if (!isEqual(td->conf.zoom, 0, 1E-6) ){
       newtrans.zoom += td->conf.zoom;
     }
     return newtrans;

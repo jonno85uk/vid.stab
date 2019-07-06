@@ -130,7 +130,8 @@ Vec transform_vec(const PreparedTransform* pt, const Vec* v){
   return res;
 }
 
-void transform_vec_double(double* x, double* y, const PreparedTransform* pt, const Vec* v){
+void transform_vec_double(double* x, double* y, const PreparedTransform* pt, const Vec* v)
+{
   double rx = v->x - pt->c_x;
   double ry = v->y - pt->c_y;
   *x =  pt->zcos_a * rx + pt->zsin_a * ry + pt->t->x + pt->c_x;
@@ -153,16 +154,16 @@ Vec field_to_vec(Field f){
 /* compares a transform with respect to x (for sort function) */
 int cmp_trans_x(const void *t1, const void* t2)
 {
-  double a = ((VSTransform*)t1)->x;
-  double b = ((VSTransform*)t2)->x;
+  double a = ((const VSTransform*)t1)->x;
+  double b = ((const VSTransform*)t2)->x;
   return a < b ? -1 : ( a > b ? 1 : 0 );
 }
 
 /* compares a transform with respect to y (for sort function) */
 int cmp_trans_y(const void *t1, const void* t2)
 {
-  double a = ((VSTransform*)t1)->y;
-  double b = ((VSTransform*)t2)->y;
+  double a = ((const VSTransform*)t1)->y;
+  double b = ((const VSTransform*)t2)->y;
   return a < b ? -1 : ( a > b ? 1: 0 );
 }
 
@@ -176,16 +177,16 @@ int cmp_trans_y(const void *t1, const void* t2)
 /* compares two double values (for sort function)*/
 int cmp_double(const void *t1, const void* t2)
 {
-  double a = *((double*)t1);
-  double b = *((double*)t2);
+  double a = *((const double*)t1);
+  double b = *((const double*)t2);
   return a < b ? -1 : ( a > b ? 1 : 0 );
 }
 
 /* compares two int values (for sort function)*/
 int cmp_int(const void *t1, const void* t2)
 {
-  int a = *((int*)t1);
-  int b = *((int*)t2);
+  int a = *((const int*)t1);
+  int b = *((const int*)t2);
   return a < b ? -1 : ( a > b ? 1 : 0 );
 }
 
@@ -206,13 +207,13 @@ int cmp_int(const void *t1, const void* t2)
  */
 VSTransform median_xy_transform(const VSTransform* transforms, int len)
 {
-  VSTransform* ts = vs_malloc(sizeof(VSTransform) * len);
+  VSTransform* ts = vs_malloc(sizeof(VSTransform) * (unsigned long)len);
   VSTransform t   = null_transform();
-  memcpy(ts,transforms, sizeof(VSTransform)*len );
+  memcpy(ts,transforms, sizeof(VSTransform)*(unsigned long)len );
   int half = len/2;
-  qsort(ts, len, sizeof(VSTransform), cmp_trans_x);
+  qsort(ts, (size_t)len, sizeof(VSTransform), cmp_trans_x);
   t.x = len % 2 == 0 ? ts[half].x : (ts[half].x + ts[half+1].x)/2;
-  qsort(ts, len, sizeof(VSTransform), cmp_trans_y);
+  qsort(ts, (size_t)len, sizeof(VSTransform), cmp_trans_y);
   t.y = len % 2 == 0 ? ts[half].y : (ts[half].y + ts[half+1].y)/2;
   vs_free(ts);
   return t;

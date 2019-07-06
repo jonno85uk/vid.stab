@@ -28,6 +28,7 @@
 #include <omp.h>
 #endif
 
+#include <stdbool.h>
 #include "transformfixedpoint.h"
 #include "transform.h"
 #include "transformtype_operations.h"
@@ -61,13 +62,18 @@ inline void lim_pix_val(uint8_t * const rv, const int res)
 {
   if (res>=0) {
     if (res < MAX_PIX_VAL) {
-      *rv = res;
+      *rv = (uint8_t)res;
     } else {
       *rv = MAX_PIX_VAL;
     }
   } else {
     *rv = 0;
   }
+}
+
+inline bool isEqual(const double a, const double b, const double epsilon)
+{
+  return fabs(a - b) < epsilon;
 }
 
 /** interpolateBiLinBorder: bi-linear interpolation function that also works at the border.
@@ -128,8 +134,7 @@ inline void interpolateBiLinBorder(uint8_t * const rv, const fp16 x, const fp16 
       ) ) >> 17; 
  } 
 #else
-// perf: ~0.0% change in perf with _inline_ 10% decrease without static
-static short bicub_kernel(const fp16 t, const short a0, const short a1, const short a2, const short a3){  
+inline short bicub_kernel(const fp16 t, const short a0, const short a1, const short a2, const short a3){
   // (2*a1 + t*((-a0+a2) + t*((2*a0-5*a1+4*a2-a3) + t*(-a0+3*a1-3*a2+a3) )) ) / 2;
   // we add 1/2 because of truncation errors
   return fp16ToIRound((iToFp16(2*a1) + t*(-a0+a2 + fp16ToIRound(t*((2*a0-5*a1+4*a2-a3) + fp16ToIRound(t*(-a0+3*a1-3*a2+a3)) )) )) >> 1);
@@ -166,7 +171,6 @@ inline void interpolateBiCub(uint8_t * const rv, const fp16 x, const fp16 y,
 
     short res = bicub_kernel(y-y_f, vals[0], vals[1], vals[2], vals[3]);
     lim_pix_val(rv, res);
-    // *rv = (res >= 0) ? ((res < 255) ? res : 255) : 0;
   }
 }
 
@@ -230,9 +234,7 @@ void interpolateBiLin(uint8_t * const rv, const fp16 x, const fp16 y,
     // it is underestimated due to truncation, so we add one
     const short res = fp16ToI(s);
 #endif
-    // 0 >= res <= 255
     lim_pix_val(rv, res);
-    //*rv = (res >= 0) ? ((res < 255) ? res+1 : 255) : 0;
   }
 }
 
@@ -252,7 +254,6 @@ inline void interpolateLin(uint8_t * const rv, const fp16 x, const fp16 y,
   fp16 s   = v1*(x - x_f) + v2*(x_c - x);
   short res = fp16ToI(s);
   lim_pix_val(rv, res);
-  // *rv = (res >= 0) ? ((res < 255) ? res : 255) : 0;
 }
 
 /** interpolateZero: nearest neighbor interpolation function, see interpolate */
@@ -264,7 +265,6 @@ inline void interpolateZero(uint8_t * const rv, const int32_t x, const int32_t y
   int32_t iy_n = fp16ToIRound(y);
   int32_t res = PIXEL(img, linesize, ix_n, iy_n, width, height, def);
   lim_pix_val(rv, res);
-  // *rv = (res >= 0) ? ((res < 255) ? res : 255) : 0;
 }
 
 
@@ -306,7 +306,6 @@ inline void interpolateN(uint8_t *rv, fp16 x, fp16 y,
       fp16To8(v2*(x - x_f) + v4*(x_c - x))*fp16To8(y_c - y);
     int32_t res = fp16ToIRound(s);
     lim_pix_val(rv, res);
-    // *rv = (res >= 0) ? ((res < 255) ? res : 255) : 0;
   }
 }
 
@@ -340,7 +339,7 @@ int transformPacked(VSTransformData* td, VSTransform t)
    *  t the translation, and M the rotation matrix
    *      p_s = M^{-1}(p_d - c_d - t) + c_s
    */
-  float zoomVal     = 1.0-t.zoom/100.0;
+  double zoomVal     = 1.0 - (t.zoom/100.0);
   fp16 zcos_a = fToFp16(zoomVal*cos(-t.alpha)); // scaled cos
   fp16 zsin_a = fToFp16(zoomVal*sin(-t.alpha)); // scaled sin
   fp16  c_tx    = c_s_x - fToFp16(t.x);
@@ -358,7 +357,7 @@ int transformPacked(VSTransformData* td, VSTransform t)
         uint8_t *dest = &D_2[x + y * td->destbuf.linesize[0]+k];
         interpolateN(dest, x_s, y_s, D_1, td->src.linesize[0],
                      td->fiSrc.width, td->fiSrc.height,
-                     channels, k, td->conf.crop ? 16 : *dest);
+                     (uint8_t)channels, (uint8_t)k, td->conf.crop ? 16 : *dest);
       }
     }
   }
@@ -383,7 +382,6 @@ int transformPacked(VSTransformData* td, VSTransform t)
 int transformPlanar(VSTransformData* td, VSTransform t)
 {
 #ifdef USE_OMP
-  // makes ~zero peformance difference. just "looks" better
   if (td->conf.threadCount < 1) {
     // default to half available threads. 
     td->conf.threadCount = omp_get_num_threads()/2;
@@ -391,7 +389,7 @@ int transformPlanar(VSTransformData* td, VSTransform t)
   omp_set_num_threads(td->conf.threadCount);
 #endif
 
-  if ( (t.alpha==0) && (t.x==0) && (t.y==0) && (t.zoom == 0) ) {
+  if ( isEqual(t.alpha, 0, 1E-6) && isEqual(t.x, 0, 1E-6) && isEqual(t.y, 0, 1E-6) && isEqual(t.zoom, 0, 1E-6) ) {
     if(vsFramesEqual(&td->src, &td->destbuf))
       return VS_OK; // noop
     else {
@@ -400,7 +398,7 @@ int transformPlanar(VSTransformData* td, VSTransform t)
     }
   }
 
-  const float zoomVal = 1.0 - (t.zoom / 100.0);
+  const double zoomVal = 1.0 - (t.zoom / 100.0);
   
   for (int plane = 0; plane < td->fiSrc.planes; plane++) {
     const uint8_t * const srcData  = td->src.data[plane];

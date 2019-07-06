@@ -93,13 +93,13 @@ double calcTransformQuality(VSArray params, void* dat){
   PreparedTransform pt= prepare_transform(&t, &gd->td->fiSrc);
   int num = 1; // we start with 1 to avoid div by zero
   for (int i = 0; i < num_motions; i++) {
-    if(gd->missmatches.dat[i]>=0){
+    if (gd->missmatches.dat[i] >= 0) {
       LocalMotion* m = LMGet(motions,i);
       double vx,vy;
       transform_vec_double(&vx, &vy, &pt, (Vec*)&m->f);
       vx -= m->f.x; vy -= m->f.y;
-      double e   = sqr(vx - m->v.x) +  sqr(vy - m->v.y);
-      gd->missmatches.dat[i]=e;
+      const double e = sqr(vx - m->v.x) +  sqr(vy - m->v.y);
+      gd->missmatches.dat[i] = e;
       error += e;
       num++;
     }
