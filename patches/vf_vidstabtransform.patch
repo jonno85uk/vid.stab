@@ -12,7 +12,5 @@
 96a99,100
 >     {  "bicublin", "bi-cublin",                                                       0,
 >                    AV_OPT_TYPE_CONST,  {.i64 = VS_BiCubLin },0, 0,  FLAGS, "interpol"},
-186a191
->     tc->conf.threadCount             = 0;
-195a201
+195a200
 >     av_log(ctx, AV_LOG_INFO, "  threadcount = %d\n", tc->conf.threadCount);
