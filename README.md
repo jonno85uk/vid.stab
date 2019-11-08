@@ -1,4 +1,4 @@
-# VidStab [![Codacy Badge](https://api.codacy.com/project/badge/Grade/0c68a79200d24411b8dc73fdf291f1ab)](https://www.codacy.com/manual/jonno85uk/vid.stab?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=jonno85uk/vid.stab&amp;utm_campaign=Badge_Grade)
+# VidStab [![Codacy Badge](https://api.codacy.com/project/badge/Grade/0c68a79200d24411b8dc73fdf291f1ab)](https://www.codacy.com/manual/jonno85uk/vid.stab?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=jonno85uk/vid.stab&amp;utm_campaign=Badge_Grade)[![License: GPL v2](https://img.shields.io/badge/License-GPL%20v2-blue.svg)](https://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html)
 
 Vidstab is a video stabilization library which can be plugged-in with Ffmpeg and Transcode.
 
